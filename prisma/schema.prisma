@@ -1,0 +1,416 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  phone         String?
+  password      String?
+  role          Role      @default(USER)
+  emailVerified DateTime?
+  image         String?
+
+  // روابط
+  appointments Appointment[]
+  userPoints   UserPoints[]
+  redemptions  Redemption[]
+  discountUses DiscountUse[]
+  apiKeys      ApiKey[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+model Service {
+  id          String  @id @default(cuid())
+  name        String
+  description String?
+  duration    Int // مدت زمان به دقیقه
+  price       Float?
+  isActive    Boolean @default(true)
+  color       String? @default("#3b82f6")
+
+  // روابط
+  appointments   Appointment[]
+  branchServices BranchService[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("services")
+}
+
+model Appointment {
+  id        String            @id @default(cuid())
+  userId    String
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  serviceId String
+  service   Service           @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  branchId  String
+  branch    Branch            @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  staffId   String?
+  staff     Staff?            @relation(fields: [staffId], references: [id])
+  date      DateTime
+  endDate   DateTime // تاریخ پایان محاسبه شده
+  status    AppointmentStatus @default(PENDING)
+  notes     String?
+
+  // روابط جدید برای پرداخت
+  payments     Payment[]
+  invoices     Invoice[]
+  discountUses DiscountUse[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([date, branchId, staffId])
+  @@map("appointments")
+}
+
+model Branch {
+  id        String  @id @default(cuid())
+  name      String
+  address   String
+  phone     String?
+  email     String?
+  isActive  Boolean @default(true)
+  latitude  Float?
+  longitude Float?
+
+  // روابط
+  workingHours   BranchWorkingHours[]
+  staff          Staff[]
+  appointments   Appointment[]
+  branchServices BranchService[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("branches")
+}
+
+model BranchWorkingHours {
+  id        String  @id @default(cuid())
+  branchId  String
+  branch    Branch  @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  dayOfWeek Int // 0-6 (شنبه تا جمعه)
+  startTime String // "09:00"
+  endTime   String // "17:00"
+  isActive  Boolean @default(true)
+
+  @@unique([branchId, dayOfWeek])
+  @@map("branch_working_hours")
+}
+
+model Staff {
+  id        String  @id @default(cuid())
+  name      String
+  email     String
+  phone     String?
+  specialty String? // تخصص
+  bio       String? // شرح حال
+  image     String?
+  isActive  Boolean @default(true)
+
+  // روابط
+  branchId     String
+  branch       Branch        @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  appointments Appointment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("staff")
+}
+
+model BranchService {
+  id        String  @id @default(cuid())
+  branchId  String
+  branch    Branch  @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  serviceId String
+  service   Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  isActive  Boolean @default(true)
+  price     Float? // قیمت مخصوص این شعبه
+
+  @@unique([branchId, serviceId])
+  @@map("branch_services")
+}
+
+// سیستم وفاداری و تخفیف‌ها
+model LoyaltyProgram {
+  id          String  @id @default(cuid())
+  name        String
+  description String?
+  pointsRate  Float   @default(1.0) // نرخ تبدیل ریال به امتیاز
+  isActive    Boolean @default(true)
+
+  // روابط
+  userPoints UserPoints[]
+  rewards    Reward[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("loyalty_programs")
+}
+
+model UserPoints {
+  id          String         @id @default(cuid())
+  userId      String
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  programId   String
+  program     LoyaltyProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
+  points      Int            @default(0)
+  totalEarned Int            @default(0)
+  totalSpent  Int            @default(0)
+
+  // روابط
+  transactions PointTransaction[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, programId])
+  @@map("user_points")
+}
+
+model PointTransaction {
+  id           String          @id @default(cuid())
+  userPointsId String
+  userPoints   UserPoints      @relation(fields: [userPointsId], references: [id], onDelete: Cascade)
+  points       Int // مثبت برای کسب، منفی برای مصرف
+  type         TransactionType
+  description  String?
+  referenceId  String? // ID رزرو یا تراکنش مرتبط
+
+  createdAt DateTime @default(now())
+
+  @@map("point_transactions")
+}
+
+model Reward {
+  id            String         @id @default(cuid())
+  programId     String
+  program       LoyaltyProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
+  name          String
+  description   String?
+  pointsCost    Int
+  discountType  DiscountType   @default(AMOUNT)
+  discountValue Float
+  isActive      Boolean        @default(true)
+  stock         Int? // موجودی (null برای نامحدود)
+
+  // روابط
+  redemptions Redemption[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("rewards")
+}
+
+model Redemption {
+  id          String           @id @default(cuid())
+  userId      String
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rewardId    String
+  reward      Reward           @relation(fields: [rewardId], references: [id], onDelete: Cascade)
+  pointsSpent Int
+  status      RedemptionStatus @default(PENDING)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("redemptions")
+}
+
+model DiscountCode {
+  id            String       @id @default(cuid())
+  code          String       @unique
+  description   String?
+  discountType  DiscountType @default(PERCENTAGE)
+  discountValue Float
+  maxUses       Int? // حداکثر تعداد استفاده
+  usedCount     Int          @default(0)
+  minAmount     Float? // حداقل مبلغ سفارش
+  validFrom     DateTime?
+  validUntil    DateTime?
+  isActive      Boolean      @default(true)
+
+  // روابط
+  userUses DiscountUse[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("discount_codes")
+}
+
+model DiscountUse {
+  id             String       @id @default(cuid())
+  discountCodeId String
+  discountCode   DiscountCode @relation(fields: [discountCodeId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  appointmentId  String?
+  appointment    Appointment? @relation(fields: [appointmentId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@map("discount_uses")
+}
+
+// سیستم API
+model ApiKey {
+  id         String    @id @default(cuid())
+  name       String
+  key        String    @unique
+  keyPreview String
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isActive   Boolean   @default(true)
+  lastUsed   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("api_keys")
+}
+
+// سیستم بکاپ
+model Backup {
+  id        String       @id @default(cuid())
+  filename  String
+  size      Int // حجم به بایت
+  tables    Int // تعداد جداول
+  status    BackupStatus @default(COMPLETED)
+  createdAt DateTime     @default(now())
+
+  @@map("backups")
+}
+
+// سیستم پرداخت - مدل‌های جدید
+model Payment {
+  id            String         @id @default(cuid())
+  appointmentId String
+  appointment   Appointment    @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  amount        Float
+  status        PaymentStatus  @default(PENDING)
+  paymentMethod PaymentMethod
+  gateway       PaymentGateway
+  gatewayRef    String? // شماره مرجع درگاه
+  authority     String? // کد authority برای زرین پال
+  description   String?
+
+  // برای پرداخت‌های آنلاین
+  redirectUrl String?
+  verified    Boolean @default(false)
+
+  // رابطه با فاکتور
+  invoiceId String?
+  invoice   Invoice? @relation(fields: [invoiceId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("payments")
+}
+
+model Invoice {
+  id            String        @id @default(cuid())
+  appointmentId String
+  appointment   Appointment   @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  invoiceNumber String        @unique
+  items         Json // آرایه‌ای از آیتم‌های فاکتور
+  subtotal      Float
+  tax           Float         @default(0)
+  discount      Float         @default(0)
+  total         Float
+  status        InvoiceStatus @default(ISSUED)
+
+  // روابط
+  payments Payment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("invoices")
+}
+
+// Enumها
+enum Role {
+  USER
+  ADMIN
+}
+
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+enum TransactionType {
+  EARN_APPOINTMENT
+  EARN_REFERRAL
+  SPEND_REDEMPTION
+  ADJUSTMENT
+  EXPIRATION
+}
+
+enum DiscountType {
+  PERCENTAGE
+  AMOUNT
+}
+
+enum RedemptionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  USED
+}
+
+enum BackupStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+// Enumهای جدید برای پرداخت
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  ZARINPAL
+  WALLET
+  CASH
+}
+
+enum PaymentGateway {
+  ZARINPAL
+}
+
+enum InvoiceStatus {
+  DRAFT
+  ISSUED
+  SENT
+  PAID
+  OVERDUE
+  CANCELLED
+}
