@@ -1,29 +1,53 @@
-# Create T3 App
+# سامانه نوبت‌دهی آنلاین
 
-This is a [T3 Stack](https://create.t3.gg/) project bootstrapped with `create-t3-app`.
+یک سیستم کامل مدیریت و رزرو قرار ملاقات با Next.js 14، TypeScript، و Prisma.
 
-## What's next? How do I make an app with this?
+## 🚀 ویژگی‌ها
 
-We try to keep this project as simple as possible, so you can start with just the scaffolding we set up for you, and add additional things later when they become necessary.
+### برای کاربران
 
-If you are not familiar with the different technologies used in this project, please refer to the respective docs. If you still are in the wind, please join our [Discord](https://t3.gg/discord) and ask for help.
+- ✅ رزرو نوبت آنلاین
+- ✅ مدیریت نوبت‌های شخصی
+- ✅ سیستم اطلاع‌رسانی
+- ✅ پنل کاربری پیشرفته
 
-- [Next.js](https://nextjs.org)
-- [NextAuth.js](https://next-auth.js.org)
-- [Prisma](https://prisma.io)
-- [Drizzle](https://orm.drizzle.team)
-- [Tailwind CSS](https://tailwindcss.com)
-- [tRPC](https://trpc.io)
+### برای مدیران
 
-## Learn More
+- ✅ مدیریت چند شعبه
+- ✅ مدیریت پرسنل
+- ✅ گزارش‌گیری پیشرفته
+- ✅ سیستم وفاداری و تخفیف
 
-To learn more about the [T3 Stack](https://create.t3.gg/), take a look at the following resources:
+### فنی
 
-- [Documentation](https://create.t3.gg/)
-- [Learn the T3 Stack](https://create.t3.gg/en/faq#what-learning-resources-are-currently-available) — Check out these awesome tutorials
+- ✅ Next.js 14 با App Router
+- ✅ TypeScript
+- ✅ Prisma با SQLite/PostgreSQL
+- ✅ NextAuth.js برای احراز هویت
+- ✅ Tailwind CSS + shadcn/ui
+- ✅ Responsive Design
 
-You can check out the [create-t3-app GitHub repository](https://github.com/t3-oss/create-t3-app) — your feedback and contributions are welcome!
+## 🛠️ نصب و راه‌اندازی
 
-## How do I deploy this?
+### پیش‌نیازها
 
-Follow our deployment guides for [Vercel](https://create.t3.gg/en/deployment/vercel), [Netlify](https://create.t3.gg/en/deployment/netlify) and [Docker](https://create.t3.gg/en/deployment/docker) for more information.
+- Node.js 18+
+- npm یا yarn
+
+### نصب
+
+```bash
+# کلون پروژه
+git clone https://github.com/khghm/booking-system.git
+cd booking-system
+
+# نصب dependencies
+npm install
+
+# راه‌اندازی دیتابیس
+npx prisma generate
+npx prisma db push
+npm run db:seed
+
+# اجرای توسعه
+npm run dev
