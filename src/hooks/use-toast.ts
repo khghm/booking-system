@@ -10,6 +10,7 @@ export type ToastProps = {
   description?: string
   action?: React.ReactNode
   variant?: "default" | "destructive"
+  onOpenChange?: (open: boolean) => void
 }
 
 const actionTypes = {
@@ -145,7 +146,6 @@ function toast({ ...props }: Toast) {
     toast: {
       ...props,
       id,
-      open: true,
       onOpenChange: (open: any) => {
         if (!open) dismiss()
       },

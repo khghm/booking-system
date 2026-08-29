@@ -1,48 +1,28 @@
-/* eslint-disable @typescript-eslint/no-empty-function */
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
 // src/app/api/services/route.ts
 import { NextResponse } from "next/server";
-import { PrismaClient } from '@prisma/client'
+import { db } from "~/lib/db";
+import { logger } from "~/lib/logger";
+import { getRateLimit } from "~/lib/rate-limit";
+import { ApiError, handleApiError } from "~/lib/error-handler";
 
-const prisma = new PrismaClient({
-  log: ['query', 'error', 'warn'],
-})
-
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    console.log('=== START SERVICES API ===');
-    
-    await prisma.$connect();
-    console.log('Database connected for services');
+    const ip = request.headers.get("x-forwarded-for") ?? "unknown";
+    const limiter = getRateLimit("api");
+    const rateResult = limiter.check(ip);
 
-    const services = await prisma.service.findMany({
+    if (!rateResult.success) {
+      throw new ApiError(429, "تعداد درخواست‌های بیش از حد", "RATE_LIMIT_EXCEEDED");
+    }
+
+    const services = await db.service.findMany({
       where: { isActive: true },
       orderBy: { name: 'asc' }
     });
 
-    console.log('Services found:', services);
-    
-    await prisma.$disconnect();
-    console.log('=== END SERVICES API ===');
-    
+    logger.info("Services fetched successfully", {  count: services.length  });
     return NextResponse.json(services);
-  } catch (error: any) {
-    console.error('=== SERVICES API ERROR ===');
-    console.error('Error message:', error.message);
-    console.error('Error stack:', error.stack);
-    console.error('=== END ERROR ===');
-    
-    await prisma.$disconnect().catch(() => {});
-    
-    return NextResponse.json(
-      { 
-        error: "خطا در دریافت سرویس‌ها",
-        details: error.message 
-      },
-      { status: 500 }
-    );
+  } catch (error) {
+    return handleApiError(error);
   }
 }

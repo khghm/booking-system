@@ -84,7 +84,7 @@ async function getDashboardData(userId: string) {
     // تبدیل به فرمت مورد نیاز
     const activityData = recentActivity.map(apt => {
       let message = '';
-      let type: 'appointment' | 'payment' | 'reminder' = 'appointment';
+      let type: 'appointment' | 'reminder' = 'appointment';
 
       switch (apt.status) {
         case 'PENDING':
@@ -304,8 +304,7 @@ export default async function DashboardPage() {
                     <div key={activity.id} className="flex items-center justify-between p-3 border rounded-lg">
                       <div className="flex items-center space-x-3 space-x-reverse">
                         <div className={`w-2 h-2 rounded-full ${
-                          activity.type === 'appointment' ? 'bg-blue-500' :
-                          activity.type === 'payment' ? 'bg-green-500' : 'bg-yellow-500'
+                          activity.type === 'appointment' ? 'bg-blue-500' : 'bg-yellow-500'
                         }`} />
                         <div>
                           <p className="font-medium text-sm">{activity.message}</p>

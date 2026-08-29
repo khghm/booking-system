@@ -24,7 +24,9 @@ model User {
   redemptions  Redemption[]
   discountUses DiscountUse[]
   apiKeys      ApiKey[]
-
+  notifications Notification[]
+  notificationPreferences NotificationPreference[]
+  
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -61,14 +63,20 @@ model Appointment {
   staffId   String?
   staff     Staff?            @relation(fields: [staffId], references: [id])
   date      DateTime
-  endDate   DateTime // تاریخ پایان محاسبه شده
+  endDate   DateTime
   status    AppointmentStatus @default(PENDING)
   notes     String?
 
+  // فیلدهای جدید برای تأیید و مدیریت
+  confirmedBy        String? // ID کاربری که نوبت رو تأیید کرده
+  confirmedAt        DateTime?
+  completedAt        DateTime?
+  cancelledAt        DateTime?
+  cancellationReason String?
   // روابط جدید برای پرداخت
-  payments     Payment[]
-  invoices     Invoice[]
-  discountUses DiscountUse[]
+  payments           Payment[]
+  invoices           Invoice[]
+  discountUses       DiscountUse[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -79,7 +87,7 @@ model Appointment {
 
 model Branch {
   id        String  @id @default(cuid())
-  name      String
+  name      String  @unique
   address   String
   phone     String?
   email     String?
@@ -295,7 +303,7 @@ model Backup {
   tables    Int // تعداد جداول
   status    BackupStatus @default(COMPLETED)
   createdAt DateTime     @default(now())
-
+  autoBackupLogs AutoBackupLog[]
   @@map("backups")
 }
 
@@ -413,4 +421,77 @@ enum InvoiceStatus {
   PAID
   OVERDUE
   CANCELLED
+}
+// prisma/schema.prisma - اضافه کردن مدل Notification
+model Notification {
+  id          String   @id @default(cuid())
+  type        NotificationType
+  title       String
+  message     String
+  userId      String?  // اگر null باشد، برای همه کاربران است
+  user        User?    @relation(fields: [userId], references: [id])
+  relatedId   String?  // ID مربوطه (مثلاً appointmentId)
+  relatedType RelatedType?
+  isRead      Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  priority    NotificationPriority @default(MEDIUM)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("notifications")
+}
+
+model NotificationPreference {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        NotificationType
+  email       Boolean  @default(true)
+  sms         Boolean  @default(false)
+  push        Boolean  @default(true)
+  inApp       Boolean  @default(true)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("notification_preferences")
+  @@unique([userId, type])
+}
+
+enum NotificationType {
+  APPOINTMENT_REMINDER
+  APPOINTMENT_CONFIRMED
+  APPOINTMENT_CANCELLED
+  NEW_APPOINTMENT
+  SYSTEM_ALERT
+  SECURITY_ALERT
+  PAYMENT_SUCCESS
+  PAYMENT_FAILED
+}
+
+enum RelatedType {
+  APPOINTMENT
+  USER
+  PAYMENT
+  SYSTEM
+}
+
+enum NotificationPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+// اضافه کردن به schema.prisma
+model AutoBackupLog {
+  id        String   @id @default(cuid())
+  type      String   // daily, weekly, monthly
+  status    String   // SUCCESS, FAILED
+  backupId  String?
+  backup    Backup?  @relation(fields: [backupId], references: [id])
+  details   String?
+  createdAt DateTime @default(now())
+
+  @@map("auto_backup_logs")
 }

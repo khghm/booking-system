@@ -1,0 +1,113 @@
+src/components/notifications/NotificationPreferences.ts(51,28): error TS1005: ')' expected.
+src/components/notifications/NotificationPreferences.ts(51,40): error TS1161: Unterminated regular expression literal.
+src/components/notifications/NotificationPreferences.ts(53,11): error TS1434: Unexpected keyword or identifier.
+src/components/notifications/NotificationPreferences.ts(53,18): error TS1434: Unexpected keyword or identifier.
+src/components/notifications/NotificationPreferences.ts(53,23): error TS1434: Unexpected keyword or identifier.
+src/components/notifications/NotificationPreferences.ts(53,25): error TS1434: Unexpected keyword or identifier.
+src/components/notifications/NotificationPreferences.ts(53,30): error TS1434: Unexpected keyword or identifier.
+src/components/notifications/NotificationPreferences.ts(54,10): error TS1161: Unterminated regular expression literal.
+src/components/notifications/NotificationPreferences.ts(55,8): error TS1161: Unterminated regular expression literal.
+src/components/notifications/NotificationPreferences.ts(56,20): error TS1005: ';' expected.
+src/components/notifications/NotificationPreferences.ts(57,14): error TS1005: '>' expected.
+src/components/notifications/NotificationPreferences.ts(57,23): error TS1005: ';' expected.
+src/components/notifications/NotificationPreferences.ts(58,15): error TS1005: '>' expected.
+src/components/notifications/NotificationPreferences.ts(58,24): error TS1005: ';' expected.
+src/components/notifications/NotificationPreferences.ts(58,55): error TS1005: ';' expected.
+src/components/notifications/NotificationPreferences.ts(58,63): error TS1161: Unterminated regular expression literal.
+src/components/notifications/NotificationPreferences.ts(60,16): error TS1005: ';' expected.
+src/components/notifications/NotificationPreferences.ts(61,18): error TS1005: '>' expected.
+src/components/notifications/NotificationPreferences.ts(61,27): error TS1005: ';' expected.
+src/components/notifications/NotificationPreferences.ts(62,22): error TS1005: '>' expected.
+src/components/notifications/NotificationPreferences.ts(62,29): error TS1005: ';' expected.
+src/components/notifications/NotificationPreferences.ts(62,54): error TS1005: ';' expected.
+src/components/notifications/NotificationPreferences.ts(62,62): error TS1161: Unterminated regular expression literal.
+src/components/notifications/NotificationPreferences.ts(63,18): error TS1005: ';' expected.
+src/components/notifications/NotificationPreferences.ts(64,24): error TS1005: ';' expected.
+src/components/notifications/NotificationPreferences.ts(64,30): error TS1127: Invalid character.
+src/components/notifications/NotificationPreferences.ts(64,31): error TS1127: Invalid character.
+src/components/notifications/NotificationPreferences.ts(64,33): error TS1434: Unexpected keyword or identifier.
+src/components/notifications/NotificationPreferences.ts(64,38): error TS1434: Unexpected keyword or identifier.
+src/components/notifications/NotificationPreferences.ts(64,42): error TS1434: Unexpected keyword or identifier.
+src/components/notifications/NotificationPreferences.ts(65,16): error TS1161: Unterminated regular expression literal.
+src/components/notifications/NotificationPreferences.ts(66,14): error TS1161: Unterminated regular expression literal.
+src/components/notifications/NotificationPreferences.ts(69,35): error TS1005: ',' expected.
+src/components/notifications/NotificationPreferences.ts(70,32): error TS1136: Property assignment expected.
+src/components/notifications/NotificationPreferences.ts(70,42): error TS1005: ';' expected.
+src/components/notifications/NotificationPreferences.ts(73,13): error TS1161: Unterminated regular expression literal.
+src/components/notifications/NotificationPreferences.ts(74,12): error TS1161: Unterminated regular expression literal.
+src/components/notifications/NotificationPreferences.ts(76,16): error TS1005: ';' expected.
+src/components/notifications/NotificationPreferences.ts(77,18): error TS1005: '>' expected.
+src/components/notifications/NotificationPreferences.ts(77,27): error TS1005: ';' expected.
+src/components/notifications/NotificationPreferences.ts(78,22): error TS1005: '>' expected.
+src/components/notifications/NotificationPreferences.ts(78,29): error TS1005: ';' expected.
+src/components/notifications/NotificationPreferences.ts(78,52): error TS1005: ';' expected.
+src/components/notifications/NotificationPreferences.ts(78,60): error TS1161: Unterminated regular expression literal.
+src/components/notifications/NotificationPreferences.ts(79,18): error TS1005: ';' expected.
+src/components/notifications/NotificationPreferences.ts(80,24): error TS1005: ';' expected.
+src/components/notifications/NotificationPreferences.ts(80,30): error TS1127: Invalid character.
+src/components/notifications/NotificationPreferences.ts(80,32): error TS1434: Unexpected keyword or identifier.
+src/components/notifications/NotificationPreferences.ts(80,37): error TS1434: Unexpected keyword or identifier.
+src/components/notifications/NotificationPreferences.ts(80,41): error TS1434: Unexpected keyword or identifier.
+src/components/notifications/NotificationPreferences.ts(81,16): error TS1161: Unterminated regular expression literal.
+src/components/notifications/NotificationPreferences.ts(82,14): error TS1161: Unterminated regular expression literal.
+src/components/notifications/NotificationPreferences.ts(85,35): error TS1005: ',' expected.
+src/components/notifications/NotificationPreferences.ts(86,32): error TS1136: Property assignment expected.
+src/components/notifications/NotificationPreferences.ts(86,42): error TS1005: ';' expected.
+src/components/notifications/NotificationPreferences.ts(88,15): error TS1128: Declaration or statement expected.
+src/components/notifications/NotificationPreferences.ts(89,13): error TS1161: Unterminated regular expression literal.
+src/components/notifications/NotificationPreferences.ts(90,12): error TS1161: Unterminated regular expression literal.
+src/components/notifications/NotificationPreferences.ts(91,10): error TS1161: Unterminated regular expression literal.
+src/components/notifications/NotificationPreferences.ts(93,14): error TS1005: ';' expected.
+src/components/notifications/NotificationPreferences.ts(94,15): error TS1005: '>' expected.
+src/components/notifications/NotificationPreferences.ts(94,24): error TS1005: ';' expected.
+src/components/notifications/NotificationPreferences.ts(94,59): error TS1005: ';' expected.
+src/components/notifications/NotificationPreferences.ts(94,65): error TS1161: Unterminated regular expression literal.
+src/components/notifications/NotificationPreferences.ts(96,16): error TS1005: ';' expected.
+src/components/notifications/NotificationPreferences.ts(97,18): error TS1005: '>' expected.
+src/components/notifications/NotificationPreferences.ts(97,27): error TS1005: ';' expected.
+src/components/notifications/NotificationPreferences.ts(98,22): error TS1005: '>' expected.
+src/components/notifications/NotificationPreferences.ts(98,29): error TS1005: ';' expected.
+src/components/notifications/NotificationPreferences.ts(98,60): error TS1005: ';' expected.
+src/components/notifications/NotificationPreferences.ts(98,65): error TS1161: Unterminated regular expression literal.
+src/components/notifications/NotificationPreferences.ts(99,18): error TS1005: ';' expected.
+src/components/notifications/NotificationPreferences.ts(100,29): error TS1005: ';' expected.
+src/components/notifications/NotificationPreferences.ts(100,32): error TS1434: Unexpected keyword or identifier.
+src/components/notifications/NotificationPreferences.ts(100,37): error TS1434: Unexpected keyword or identifier.
+src/components/notifications/NotificationPreferences.ts(100,43): error TS1434: Unexpected keyword or identifier.
+src/components/notifications/NotificationPreferences.ts(100,46): error TS1434: Unexpected keyword or identifier.
+src/components/notifications/NotificationPreferences.ts(101,16): error TS1161: Unterminated regular expression literal.
+src/components/notifications/NotificationPreferences.ts(102,14): error TS1161: Unterminated regular expression literal.
+src/components/notifications/NotificationPreferences.ts(105,35): error TS1005: ',' expected.
+src/components/notifications/NotificationPreferences.ts(106,32): error TS1136: Property assignment expected.
+src/components/notifications/NotificationPreferences.ts(106,42): error TS1005: ';' expected.
+src/components/notifications/NotificationPreferences.ts(108,15): error TS1128: Declaration or statement expected.
+src/components/notifications/NotificationPreferences.ts(109,13): error TS1161: Unterminated regular expression literal.
+src/components/notifications/NotificationPreferences.ts(110,12): error TS1161: Unterminated regular expression literal.
+src/components/notifications/NotificationPreferences.ts(112,16): error TS1005: ';' expected.
+src/components/notifications/NotificationPreferences.ts(113,18): error TS1005: '>' expected.
+src/components/notifications/NotificationPreferences.ts(113,27): error TS1005: ';' expected.
+src/components/notifications/NotificationPreferences.ts(114,22): error TS1005: '>' expected.
+src/components/notifications/NotificationPreferences.ts(114,29): error TS1005: ';' expected.
+src/components/notifications/NotificationPreferences.ts(114,55): error TS1005: ';' expected.
+src/components/notifications/NotificationPreferences.ts(114,60): error TS1161: Unterminated regular expression literal.
+src/components/notifications/NotificationPreferences.ts(115,18): error TS1005: ';' expected.
+src/components/notifications/NotificationPreferences.ts(116,29): error TS1005: ';' expected.
+src/components/notifications/NotificationPreferences.ts(116,38): error TS1434: Unexpected keyword or identifier.
+src/components/notifications/NotificationPreferences.ts(116,40): error TS1434: Unexpected keyword or identifier.
+src/components/notifications/NotificationPreferences.ts(117,16): error TS1161: Unterminated regular expression literal.
+src/components/notifications/NotificationPreferences.ts(118,14): error TS1161: Unterminated regular expression literal.
+src/components/notifications/NotificationPreferences.ts(121,35): error TS1005: ',' expected.
+src/components/notifications/NotificationPreferences.ts(122,32): error TS1136: Property assignment expected.
+src/components/notifications/NotificationPreferences.ts(122,42): error TS1005: ';' expected.
+src/components/notifications/NotificationPreferences.ts(124,15): error TS1128: Declaration or statement expected.
+src/components/notifications/NotificationPreferences.ts(125,13): error TS1161: Unterminated regular expression literal.
+src/components/notifications/NotificationPreferences.ts(126,12): error TS1161: Unterminated regular expression literal.
+src/components/notifications/NotificationPreferences.ts(127,10): error TS1161: Unterminated regular expression literal.
+src/components/notifications/NotificationPreferences.ts(129,17): error TS1005: ';' expected.
+src/components/notifications/NotificationPreferences.ts(129,38): error TS1005: ';' expected.
+src/components/notifications/NotificationPreferences.ts(130,24): error TS1005: ',' expected.
+src/components/notifications/NotificationPreferences.ts(131,10): error TS1161: Unterminated regular expression literal.
+src/components/notifications/NotificationPreferences.ts(132,8): error TS1161: Unterminated regular expression literal.
+src/components/notifications/NotificationPreferences.ts(133,6): error TS1161: Unterminated regular expression literal.
+src/components/notifications/NotificationPreferences.ts(134,3): error TS1128: Declaration or statement expected.
+src/components/notifications/NotificationPreferences.ts(135,1): error TS1128: Declaration or statement expected.

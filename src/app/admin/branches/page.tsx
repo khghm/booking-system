@@ -8,7 +8,7 @@ import { BranchManager } from "~/components/branch/BranchManager";
 export default async function BranchesPage() {
   const session = await getServerSession(authOptions);
 
-  if (!session || session.user.role !== "ADMIN") {
+  if (session?.user.role !== "ADMIN") {
     redirect("/login");
   }
 

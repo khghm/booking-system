@@ -1,81 +1,86 @@
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 // src/app/api/appointments/slots/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "~/lib/auth";
 import { db } from "~/lib/db";
-import { format, parse, isWithinInterval, addMinutes } from "date-fns";
+import { logger } from "~/lib/logger";
+import { z } from "zod";
+import { getRateLimit } from "~/lib/rate-limit";
+import { ApiError, handleApiError } from "~/lib/error-handler";
+
+const slotQuerySchema = z.object({
+  date: z.string().datetime("تاریخ معتبر نیست"),
+  serviceId: z.string().min(1, "سرویس معتبر نیست"),
+  branchId: z.string().min(1, "شعبه معتبر نیست"),
+  staffId: z.string().min(1, "پرسنل معتبر نیست").optional().nullable(),
+});
 
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    
+
     if (!session) {
-      return NextResponse.json(
-        { error: "دسترسی غیر مجاز" },
-        { status: 401 }
-      );
+      throw new ApiError(401, "دسترسی غیر مجاز", "UNAUTHORIZED");
     }
 
     const { searchParams } = new URL(request.url);
-    const dateStr = searchParams.get('date');
-    const serviceId = searchParams.get('serviceId');
-    const branchId = searchParams.get('branchId');
-    const staffId = searchParams.get('staffId');
+    const queryParams = Object.fromEntries(searchParams.entries());
 
-    if (!dateStr || !serviceId || !branchId) {
-      return NextResponse.json(
-        { error: "پارامترهای ضروری ارسال نشده" },
-        { status: 400 }
-      );
+    const validatedQuery = slotQuerySchema.parse({
+      date: queryParams.date,
+      serviceId: queryParams.serviceId,
+      branchId: queryParams.branchId,
+      staffId: queryParams.staffId,
+    });
+
+    const ip = request.headers.get("x-forwarded-for") ?? "unknown";
+    const limiter = getRateLimit("api");
+    const rateResult = limiter.check(ip);
+
+    if (!rateResult.success) {
+      throw new ApiError(429, "تعداد درخواست‌های بیش از حد", "RATE_LIMIT_EXCEEDED");
     }
 
-    // دریافت اطلاعات سرویس
+    const selectedDate = new Date(validatedQuery.date);
+    const startOfDay = new Date(selectedDate);
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const endOfDay = new Date(selectedDate);
+    endOfDay.setHours(23, 59, 59, 999);
+
     const service = await db.service.findUnique({
-      where: { id: serviceId }
+      where: { id: validatedQuery.serviceId }
     });
 
     if (!service) {
-      return NextResponse.json(
-        { error: "سرویس مورد نظر یافت نشد" },
-        { status: 404 }
-      );
+      throw new ApiError(404, "سرویس یافت نشد", "SERVICE_NOT_FOUND");
     }
 
-    // دریافت ساعت کاری شعبه
-    const selectedDate = new Date(dateStr);
-    const dayOfWeek = selectedDate.getDay(); // 0-6 (یکشنبه=0, شنبه=6)
-    
     const workingHours = await db.branchWorkingHours.findFirst({
       where: {
-        branchId,
-        dayOfWeek,
+        branchId: validatedQuery.branchId,
+        dayOfWeek: selectedDate.getDay(),
         isActive: true
       }
     });
 
     if (!workingHours) {
-      return NextResponse.json({ data: [] }); // شعبه در این روز تعطیل است
+      return NextResponse.json([]);
     }
 
-    // تولید time slots
-    const timeSlots = generateTimeSlots(
+    const slots = generateTimeSlots(
       workingHours.startTime,
       workingHours.endTime,
       service.duration
     );
 
-    // دریافت نوبت‌های موجود برای فیلتر کردن
     const existingAppointments = await db.appointment.findMany({
       where: {
-        branchId,
-        ...(staffId && { staffId }),
+        branchId: validatedQuery.branchId,
+        staffId: validatedQuery.staffId ?? undefined,
         date: {
-          gte: new Date(dateStr + 'T00:00:00'),
-          lt: new Date(dateStr + 'T23:59:59')
+          gte: startOfDay,
+          lt: endOfDay
         },
         status: {
           in: ['PENDING', 'CONFIRMED']
@@ -83,24 +88,23 @@ export async function GET(request: NextRequest) {
       },
       select: {
         date: true,
-        endDate: true
+        service: {
+          select: {
+            duration: true
+          }
+        }
       }
     });
 
-    // فیلتر کردن time slots بر اساس نوبت‌های موجود
-    const availableSlots = timeSlots.map(slot => {
-      const slotStart = parse(slot.time, 'HH:mm', selectedDate);
-      const slotEnd = addMinutes(slotStart, service.duration);
+    const availableSlots = slots.map(slot => {
+      const slotStart = new Date(slot.time);
+      const slotEnd = new Date(slotStart.getTime() + service.duration * 60000);
 
       const isAvailable = !existingAppointments.some(appointment => {
         const appointmentStart = new Date(appointment.date);
-        const appointmentEnd = new Date(appointment.endDate);
-        
-        return (
-          isWithinInterval(slotStart, { start: appointmentStart, end: appointmentEnd }) ||
-          isWithinInterval(slotEnd, { start: appointmentStart, end: appointmentEnd }) ||
-          (slotStart <= appointmentStart && slotEnd >= appointmentEnd)
-        );
+        const appointmentEnd = new Date(appointmentStart.getTime() + appointment.service.duration * 60000);
+
+        return slotStart < appointmentEnd && appointmentStart < slotEnd;
       });
 
       return {
@@ -109,33 +113,33 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    return NextResponse.json({ data: availableSlots });
+    logger.info("زمان‌های موجود دریافت شد", { date: validatedQuery.date, branchId: validatedQuery.branchId });
+
+    return NextResponse.json(availableSlots);
   } catch (error) {
-    console.error('Error fetching time slots:', error);
-    return NextResponse.json(
-      { error: "خطا در دریافت زمان‌های موجود" },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }
 
 function generateTimeSlots(startTime: string, endTime: string, duration: number) {
-  const slots: { time: string }[] = [];
-  const start = parse(startTime, 'HH:mm', new Date());
-  const end = parse(endTime, 'HH:mm', new Date());
+  const slots = [];
+  const [startHour, startMinute] = startTime.split(':').map(Number);
+  const [endHour, endMinute] = endTime.split(':').map(Number);
 
-  let current = start;
-  
+  const start = new Date();
+  start.setHours(startHour ?? 0, startMinute ?? 0, 0, 0);
+
+  const end = new Date();
+  end.setHours(endHour ?? 0, endMinute ?? 0, 0, 0);
+
+  let current = new Date(start);
+
   while (current < end) {
-    const next = addMinutes(current, duration);
-    
-    if (next <= end) {
-      slots.push({
-        time: format(current, 'HH:mm')
-      });
-    }
-    
-    current = addMinutes(current, 30); // فواصل ۳۰ دقیقه‌ای
+    slots.push({
+      time: current.toISOString()
+    });
+
+    current = new Date(current.getTime() + duration * 60000);
   }
 
   return slots;

@@ -182,6 +182,7 @@ async function main() {
         phone: '09123456781',
         specialty: 'پوست و مو',
         bio: 'متخصص پوست و مو با ۱۰ سال سابقه کاری',
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
         branchId: branches[0]!.id, // شعبه مرکزی
         isActive: true,
       },
@@ -193,6 +194,7 @@ async function main() {
         phone: '09123456782',
         specialty: 'دندانپزشک',
         bio: 'دندانپزشک زیبایی با تخصص ایمپلنت',
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
         branchId: branches[0]!.id, // شعبه مرکزی
         isActive: true,
       },
@@ -204,6 +206,7 @@ async function main() {
         phone: '09123456783',
         specialty: 'مشاور خانواده',
         bio: 'مشاور خانواده و روانشناس بالینی',
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
         branchId: branches[1]!.id, // شعبه غرب
         isActive: true,
       },
@@ -285,14 +288,18 @@ async function main() {
   // --- ۱. ایجاد یک نوبت رزرو شده (Appointment) ---
   console.log('📅 Creating a sample Appointment...');
   const appointmentDate = new Date(tomorrow.setHours(10, 0, 0, 0)); // فردا ساعت 10:00 صبح
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
   const serviceDuration = services[0]!.duration; // مشاوره تلفنی (30 دقیقه)
   const appointmentEndDate = calculateEndDate(appointmentDate, serviceDuration);
 
   const sampleAppointment = await prisma.appointment.create({
     data: {
       userId: user.id,
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
       serviceId: services[0]!.id, // مشاوره تلفنی
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
       branchId: branches[0]!.id, // شعبه مرکزی
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
       staffId: staffMembers[0]!.id, // دکتر جعفری
       date: appointmentDate,
       endDate: appointmentEndDate,
@@ -315,6 +322,7 @@ async function main() {
 
   // --- ۳. ایجاد تراکنش امتیاز (PointTransaction) برای نوبت رزرو شده ---
   console.log('💸 Creating PointTransaction for the Appointment...');
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
   const earnedPoints = Math.floor(services[0]!.price! * loyaltyProgram.pointsRate / 1000); // فرضا 50 امتیاز
   await prisma.pointTransaction.create({
     data: {

@@ -8,7 +8,7 @@ import { BackupManager } from "~/components/backup/BackupManager";
 export default async function BackupPage() {
   const session = await getServerSession(authOptions);
 
-  if (!session || session.user.role !== "ADMIN") {
+  if (session?.user.role !== "ADMIN") {
     redirect("/login");
   }
 

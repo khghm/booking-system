@@ -89,7 +89,9 @@ export function minutesToTimeFormat(minutes: number): string {
 
 // تبدیل زمان رشته‌ای به دقیقه
 export function timeFormatToMinutes(time: string): number {
-  const [hours, minutes] = time.split(':').map(Number)
+  const parts = time.split(':').map(Number)
+  const hours = parts[0] ?? 0
+  const minutes = parts[1] ?? 0
   return hours * 60 + minutes
 }
 
@@ -99,7 +101,7 @@ export function generateRandomColor(): string {
     '#3b82f6', '#ef4444', '#10b981', '#f59e0b', 
     '#8b5cf6', '#06b6d4', '#84cc16', '#f97316'
   ]
-  return colors[Math.floor(Math.random() * colors.length)]
+  return colors[Math.floor(Math.random() * colors.length)] ?? '#3b82f6'
 }
 
 // خلاصه کردن متن

@@ -23,25 +23,51 @@ export const serviceSchema = z.object({
   color: z.string().optional(),
 })
 
-// اعتبارسنجی شعبه
+// اعتبارسنجی شعبه - آپدیت شده
 export const branchSchema = z.object({
-  name: z.string().min(2, 'نام شعبه باید حداقل ۲ کاراکتر باشد'),
-  address: z.string().min(5, 'آدرس باید حداقل ۵ کاراکتر باشد'),
-  phone: z.string().optional(),
-  email: z.string().email('ایمیل معتبر نیست').optional().or(z.literal('')),
-  latitude: z.number().optional(),
-  longitude: z.number().optional(),
-})
+  name: z.string()
+    .min(2, 'نام شعبه باید حداقل ۲ کاراکتر باشد')
+    .max(100, 'نام شعبه نمی‌تواند بیشتر از ۱۰۰ کاراکتر باشد'),
+  address: z.string()
+    .min(5, 'آدرس باید حداقل ۵ کاراکتر باشد')
+    .max(500, 'آدرس نمی‌تواند بیشتر از ۵۰۰ کاراکتر باشد'),
+  phone: z.string()
+    .optional()
+    .refine((val) => !val || /^[\d\s-\+\(\)]{10,20}$/.test(val), {
+      message: 'شماره تلفن معتبر نیست'
+    }),
+  email: z.string()
+    .email('ایمیل معتبر نیست')
+    .optional()
+    .or(z.literal('')),
+  latitude: z.union([
+    z.string().transform(val => val ? parseFloat(val) : null),
+    z.number().nullable()
+  ]).optional().nullable(),
+  longitude: z.union([
+    z.string().transform(val => val ? parseFloat(val) : null),
+    z.number().nullable()
+  ]).optional().nullable(),
+}).refine((data) => {
+  // اگر یکی از مختصات پر شده، دیگری هم باید پر شود
+  if ((data.latitude && !data.longitude) || (!data.latitude && data.longitude)) {
+    return false;
+  }
+  return true;
+}, {
+  message: "هر دو مختصات جغرافیایی باید پر شوند یا خالی باشند",
+  path: ["latitude"] // مسیر خطا
+});
 
 // اعتبارسنجی پرسنل
-// export const staffSchema = z.object({
-//   name: z.string().min(2, 'نام باید حداقل ۲ کاراکتر باشد'),
-//   email: z.string().email('ایمیل معتبر نیست'),
-//   phone: z.string().optional(),
-//   specialty: z.string().optional(),
-//   bio: z.string().optional(),
-//   branchId: z.string().cuid('شعبه معتبر نیست'),
-// })
+export const staffSchema = z.object({
+  name: z.string().min(2, 'نام باید حداقل ۲ کاراکتر باشد'),
+  email: z.string().email('ایمیل معتبر نیست'),
+  phone: z.string().optional(),
+  specialty: z.string().optional(),
+  bio: z.string().optional(),
+  branchId: z.string().cuid('شعبه معتبر نیست'),
+})
 
 // اعتبارسنجی نوبت
 export const appointmentSchema = z.object({
@@ -84,7 +110,7 @@ export type UserInput = z.infer<typeof userSchema>
 export type LoginInput = z.infer<typeof loginSchema>
 export type ServiceInput = z.infer<typeof serviceSchema>
 export type BranchInput = z.infer<typeof branchSchema>
-// export type StaffInput = z.infer<typeof staffSchema>
+export type StaffInput = z.infer<typeof staffSchema>
 export type AppointmentInput = z.infer<typeof appointmentSchema>
 export type DiscountCodeInput = z.infer<typeof discountCodeSchema>
 export type RewardInput = z.infer<typeof rewardSchema>

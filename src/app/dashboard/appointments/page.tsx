@@ -15,6 +15,7 @@ import { Calendar, Clock, MapPin, User, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { db } from "~/lib/db";
 import { formatDate, formatTime } from "~/lib/utils";
+import { AppointmentsListClient } from "~/components/dashboard/AppointmentsListClient";
 
 async function getAppointments(userId: string) {
   try {
@@ -44,6 +45,13 @@ async function getAppointments(userId: string) {
             name: true,
             specialty: true
           }
+        },
+        invoices: {
+          select: {
+            status: true,
+            total: true,
+          },
+          take: 1,
         }
       },
       orderBy: { 
@@ -51,7 +59,10 @@ async function getAppointments(userId: string) {
       }
     });
 
-    return appointments;
+    return appointments.map(apt => ({
+      ...apt,
+      date: apt.date.toISOString(),
+    }));
   } catch (error) {
     console.error('Error fetching appointments:', error);
     return [];
@@ -198,62 +209,9 @@ export default async function AppointmentsPage() {
                 </Link>
               </div>
             ) : (
-              <div className="space-y-4">
-                {appointments.map((appointment) => (
-                  <div key={appointment.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors">
-                    <div className="flex items-center space-x-4 space-x-reverse flex-1">
-                      <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                        appointment.status === 'CONFIRMED' ? 'bg-green-100 text-green-600' :
-                        appointment.status === 'PENDING' ? 'bg-yellow-100 text-yellow-600' :
-                        appointment.status === 'COMPLETED' ? 'bg-blue-100 text-blue-600' :
-                        'bg-red-100 text-red-600'
-                      }`}>
-                        <Calendar className="h-6 w-6" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2 space-x-reverse mb-1">
-                          <h3 className="font-semibold">{appointment.service.name}</h3>
-                          {getStatusBadge(appointment.status)}
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm text-muted-foreground">
-                          <div className="flex items-center">
-                            <Clock className="h-3 w-3 ml-1" />
-                            <span>
-                              {formatDate(appointment.date)} - {formatTime(appointment.date)}
-                            </span>
-                          </div>
-                          <div className="flex items-center">
-                            <MapPin className="h-3 w-3 ml-1" />
-                            <span>{appointment.branch.name}</span>
-                          </div>
-                          <div className="flex items-center">
-                            <User className="h-3 w-3 ml-1" />
-                            <span>
-                              {appointment.staff ? appointment.staff.name : 'هر پرسنل موجود'}
-                              {appointment.staff?.specialty && ` (${appointment.staff.specialty})`}
-                            </span>
-                          </div>
-                        </div>
-                        {appointment.notes && (
-                          <p className="text-sm text-gray-600 mt-1 bg-gray-50 p-2 rounded">
-                            {appointment.notes}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm">
-                        جزئیات
-                      </Button>
-                      {appointment.status === 'PENDING' && (
-                        <Button variant="destructive" size="sm">
-                          لغو نوبت
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <AppointmentsListClient
+                appointments={appointments}
+              />
             )}
           </CardContent>
         </Card>

@@ -74,7 +74,7 @@ export function ChatWidget() {
             "ساعت کاری پشتیبانی: شنبه تا چهارشنبه از ۸ صبح تا ۵ عصر"
         ];
         
-        const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+        const randomResponse = responses[Math.floor(Math.random() * responses.length)] ?? "";
         
         const botMessage: Message = {
           id: (Date.now() + 1).toString(),

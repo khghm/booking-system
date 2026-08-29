@@ -1,17 +1,33 @@
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 // src/app/api/auth/register/route.ts
 import { NextResponse } from "next/server";
 import { db } from "~/lib/db";
-import bcrypt from 'bcryptjs';
+import bcrypt from "bcryptjs";
+import { logger } from "~/lib/logger";
+import { userSchema } from "~/lib/validations";
+import { getRateLimit } from "~/lib/rate-limit";
+import { ApiError, handleApiError } from "~/lib/error-handler";
+
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const { name, email, phone, password } = body;
+    const ip = request.headers.get("x-forwarded-for") ?? "unknown";
+    const limiter = getRateLimit("auth");
+    const rateResult = limiter.check(ip);
 
-    // بررسی وجود کاربر
+    if (!rateResult.success) {
+      throw new ApiError(429, "تعداد درخواست‌های بیش از حد", "RATE_LIMIT_EXCEEDED");
+    }
+
+    const body: unknown = await request.json();
+    const validationResult = userSchema.safeParse(body);
+    if (!validationResult.success) {
+      return NextResponse.json(
+        { error: "داده‌های نامعتبر", details: validationResult.error.flatten().fieldErrors },
+        { status: 400 }
+      );
+    }
+
+    const { name, email, phone, password } = validationResult.data;
+
     const existingUser = await db.user.findUnique({
       where: { email }
     });
@@ -22,8 +38,8 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
-  const hashedPassword = await bcrypt.hash(password, 12);
-    // ایجاد کاربر جدید
+
+    const hashedPassword = await bcrypt.hash(password, 12);
     const user = await db.user.create({
       data: {
         name,
@@ -34,23 +50,16 @@ export async function POST(request: Request) {
       }
     });
 
-    // بازگرداندن اطلاعات کاربر (بدون پسورد)
-    const { password: _, ...userWithoutPassword } = user;
-
-    return NextResponse.json(userWithoutPassword);
+    logger.info("User registered successfully", {  userId: user.id, email  });
+    return NextResponse.json({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      phone: user.phone,
+      role: user.role,
+      createdAt: user.createdAt,
+    });
   } catch (error) {
-    // ⬅️ گام حیاتی: لاگ کردن خطای دقیق
-    console.error("Error in register:", error); 
-    
-    // اگر خطای Prisma است، کد خطا را برگردانید (اختیاری)
-    if (error && typeof error === 'object' && 'code' in error) {
-        console.error("Prisma Error Code:", error.code);
-        // می‌توانید اینجا پیغام خطا را دقیق‌تر به کلاینت برگردانید
-        // مثال: return NextResponse.json({ error: `Prisma Error: ${error.code}` }, { status: 500 });
-    }
-    return NextResponse.json(
-      { error: "خطا در ایجاد حساب کاربری" },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }

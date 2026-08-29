@@ -26,21 +26,27 @@ export function Header() {
             <span className="text-xl font-bold text-gray-900">نوبت‌یاب</span>
           </Link>
 
-          <nav className="hidden md:flex items-center space-x-6 space-x-reverse">
-            <Link href="/bookings" className="text-gray-700 hover:text-blue-600 transition-colors">
-              رزرو نوبت
-            </Link>
-            {session && (
-              <Link href="/dashboard" className="text-gray-700 hover:text-blue-600 transition-colors">
-                پنل کاربری
-              </Link>
-            )}
-            {session?.user.role === "ADMIN" && (
-              <Link href="/admin" className="text-gray-700 hover:text-blue-600 transition-colors">
-                مدیریت
-              </Link>
-            )}
-          </nav>
+        <nav className="hidden md:flex items-center space-x-6 space-x-reverse">
+  <Link href="/" className="text-gray-700 hover:text-blue-600 transition-colors">
+    خانه
+  </Link>
+  <Link href="/features" className="text-gray-700 hover:text-blue-600 transition-colors">
+    امکانات
+  </Link>
+  <Link href="/pricing" className="text-gray-700 hover:text-blue-600 transition-colors">
+    تعرفه‌ها
+  </Link>
+  {session && (
+    <Link href="/dashboard" className="text-gray-700 hover:text-blue-600 transition-colors">
+      پنل کاربری
+    </Link>
+  )}
+  {session?.user.role === "ADMIN" && (
+    <Link href="/admin" className="text-gray-700 hover:text-blue-600 transition-colors">
+      مدیریت
+    </Link>
+  )}
+</nav>
 
           <div className="flex items-center space-x-3 space-x-reverse">
             {session ? (
@@ -50,9 +56,9 @@ export function Header() {
                     <div className="flex items-center space-x-2 space-x-reverse">
                       <User className="h-4 w-4" />
                       <span className="hidden sm:inline text-sm">
-                        {session.user.name || session.user.email}
+                        {session.user.name ?? session.user.email}
                       </span>
-                    </div>
+                    </div>  
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-56" align="end" forceMount>

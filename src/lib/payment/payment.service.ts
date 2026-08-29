@@ -1,21 +1,27 @@
-/* eslint-disable @typescript-eslint/prefer-nullish-coalescing */
-/* eslint-disable @typescript-eslint/no-unsafe-return */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 // src/lib/payment/payment.service.ts
-import { ZarinpalGateway, type PaymentRequest, type VerificationRequest } from './gateways/zarinpal';
+import { ZarinpalGateway, TestZarinpalGateway, type PaymentRequest, type VerificationRequest } from './gateways/zarinpal';
 import { db } from '~/lib/db';
 
 export class PaymentService {
   private zarinpal: ZarinpalGateway;
 
   constructor() {
-    this.zarinpal = new ZarinpalGateway({
-      merchantId: process.env.ZARINPAL_MERCHANT_ID!,
-      sandbox: process.env.NODE_ENV === 'development',
-      callbackUrl: `${process.env.NEXTAUTH_URL}/api/payment/verify`,
-    });
+    const merchantId = process.env.ZARINPAL_MERCHANT_ID || '';
+    const isTestMode = process.env.NODE_ENV === 'development' && !merchantId;
+
+    if (isTestMode) {
+      this.zarinpal = new TestZarinpalGateway({
+        merchantId: 'test',
+        sandbox: true,
+        callbackUrl: `${process.env.NEXTAUTH_URL}/api/payment/verify`,
+      });
+    } else {
+      this.zarinpal = new ZarinpalGateway({
+        merchantId,
+        sandbox: process.env.NODE_ENV === 'development',
+        callbackUrl: `${process.env.NEXTAUTH_URL}/api/payment/verify`,
+      });
+    }
   }
 
   async createInvoice(appointmentId: string) {
@@ -31,13 +37,11 @@ export class PaymentService {
       throw new Error('نوبت یافت نشد');
     }
 
-    // محاسبه مبلغ
     const subtotal = appointment.service.price || 0;
-    const tax = 0; // می‌توانید محاسبه مالیات اضافه کنید
-    const discount = 0; // می‌توانید تخفیف اعمال کنید
+    const tax = 0;
+    const discount = 0;
     const total = subtotal + tax - discount;
 
-    // ایجاد فاکتور
     const invoice = await db.invoice.create({
       data: {
         appointmentId: appointment.id,
@@ -80,7 +84,6 @@ export class PaymentService {
     }
 
     if (method === 'CASH') {
-      // پرداخت نقدی - مستقیماً تأیید می‌شود
       const payment = await db.payment.create({
         data: {
           appointmentId: invoice.appointmentId,
@@ -93,13 +96,11 @@ export class PaymentService {
         },
       });
 
-      // آپدیت وضعیت فاکتور
       await db.invoice.update({
         where: { id: invoiceId },
         data: { status: 'PAID' },
       });
 
-      // آپدیت وضعیت نوبت
       await db.appointment.update({
         where: { id: invoice.appointmentId },
         data: { status: 'CONFIRMED' },
@@ -109,12 +110,11 @@ export class PaymentService {
     }
 
     if (method === 'ZARINPAL') {
-      // پرداخت از طریق زرین پال
       const paymentRequest: PaymentRequest = {
         amount: invoice.total,
         description: `پرداخت بابت نوبت ${invoice.appointment.service.name}`,
         email: invoice.appointment.user.email,
-        mobile: invoice.appointment.user.phone,
+        mobile: invoice.appointment.user.phone ?? undefined,
         metadata: {
           invoiceId: invoice.id,
           appointmentId: invoice.appointmentId,
@@ -124,7 +124,6 @@ export class PaymentService {
       const paymentResult = await this.zarinpal.createPayment(paymentRequest);
 
       if (paymentResult.success && paymentResult.authority) {
-        // ایجاد رکورد پرداخت
         const payment = await db.payment.create({
           data: {
             appointmentId: invoice.appointmentId,
@@ -152,13 +151,12 @@ export class PaymentService {
   }
 
   async verifyPayment(authority: string) {
-    // پیدا کردن پرداخت
     const payment = await db.payment.findFirst({
       where: { authority },
       include: {
         appointment: {
           include: {
-            invoice: true,
+            invoices: true,
           },
         },
       },
@@ -172,16 +170,14 @@ export class PaymentService {
       return { success: true, payment, message: 'پرداخت قبلاً تأیید شده است' };
     }
 
-    // تأیید پرداخت از درگاه
     const verificationRequest: VerificationRequest = {
-      authority: payment.authority!,
+      authority: payment.authority || '',
       amount: payment.amount,
     };
 
     const verificationResult = await this.zarinpal.verifyPayment(verificationRequest);
 
     if (verificationResult.success) {
-      // آپدیت وضعیت پرداخت
       const updatedPayment = await db.payment.update({
         where: { id: payment.id },
         data: {
@@ -192,25 +188,27 @@ export class PaymentService {
         include: {
           appointment: {
             include: {
-              invoice: true,
+              invoices: true,
             },
           },
         },
       });
 
-      // آپدیت وضعیت فاکتور
-      await db.invoice.update({
-        where: { id: payment.appointment.invoice!.id },
-        data: { status: 'PAID' },
+      const invoices = await db.invoice.findMany({
+        where: { appointmentId: payment.appointmentId },
+        take: 1,
       });
+      if (invoices.length > 0) {
+        await db.invoice.update({
+          where: { id: invoices[0]!.id },
+          data: { status: 'PAID' },
+        });
+      }
 
-      // آپدیت وضعیت نوبت
       await db.appointment.update({
         where: { id: payment.appointmentId },
         data: { status: 'CONFIRMED' },
       });
-
-      // TODO: ارسال ایمیل/پیامک تأیید پرداخت
 
       return {
         success: true,
@@ -218,7 +216,6 @@ export class PaymentService {
         refId: verificationResult.refId,
       };
     } else {
-      // پرداخت ناموفق
       await db.payment.update({
         where: { id: payment.id },
         data: {

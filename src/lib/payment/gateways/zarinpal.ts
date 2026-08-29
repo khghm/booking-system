@@ -156,3 +156,24 @@ export class ZarinpalGateway {
     return errors[status] || 'خطای ناشناخته در درگاه پرداخت';
   }
 }
+
+export class TestZarinpalGateway extends ZarinpalGateway {
+  async createPayment(request: PaymentRequest): Promise<PaymentResponse> {
+    const testAuthority = `TEST-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+    const testPaymentUrl = `${process.env.NEXTAUTH_URL}/payment/test-success?authority=${testAuthority}`;
+
+    return {
+      success: true,
+      authority: testAuthority,
+      paymentUrl: testPaymentUrl,
+    };
+  }
+
+  async verifyPayment(request: VerificationRequest): Promise<VerificationResponse> {
+    return {
+      success: true,
+      refId: `TEST-REF-${Date.now()}`,
+      status: 100,
+    };
+  }
+}

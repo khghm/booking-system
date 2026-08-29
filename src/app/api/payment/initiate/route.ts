@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
     const appointment = await db.appointment.findFirst({
       where: {
         id: appointmentId,
-        userId: session.user.id,
+        userId: session!.user.id,
       },
     });
 

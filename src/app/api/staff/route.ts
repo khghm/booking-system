@@ -1,63 +1,145 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-// src/app/api/staff/route.ts
-import { type NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "~/lib/auth";
 import { db } from "~/lib/db";
+import { staffSchema } from "~/lib/validations";
+import { z } from "zod";
+import { logger } from "~/lib/logger";
+import { getRateLimit } from "~/lib/rate-limit";
+import { ApiError, handleApiError } from "~/lib/error-handler";
+
+const branchIdSchema = z.object({
+  branchId: z.coerce.string().min(1).optional(),
+});
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('Staff API called');
+    const limiter = getRateLimit("api");
+    const ip = (request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? request.headers.get("x-real-ip") ?? "unknown") as string;
+    const result = limiter.check(ip);
+    if (!result.success) {
+      throw new ApiError(429, "تعداد درخواست‌های بیش از حد", "RATE_LIMIT_EXCEEDED");
+    }
+
+    const session = await getServerSession(authOptions);
     
-    const { searchParams } = new URL(request.url);
-    const branchId = searchParams.get('branchId');
-
-    console.log('Branch ID from query:', branchId);
-
-    if (!branchId) {
+    if (!session?.user) {
       return NextResponse.json(
-        { error: "شناسه شعبه ضروری است" },
+        { error: "لطفا وارد سیستم شوید" },
+        { status: 401 }
+      );
+    }
+
+    const { searchParams } = new URL(request.url);
+    const branchId = searchParams.get("branchId");
+
+    const validationResult = branchIdSchema.safeParse({ branchId });
+    if (branchId && !validationResult.success) {
+      return NextResponse.json(
+        { error: "شناسه شعبه نامعتبر است" },
         { status: 400 }
       );
     }
 
-    // بررسی وجود شعبه
-    const branchExists = await db.branch.findUnique({
-      where: { id: branchId }
-    });
+    if (validationResult.success && validationResult.data.branchId) {
+      const staff = await db.staff.findMany({
+        where: {
+          branchId: validationResult.data.branchId,
+          isActive: true,
+        },
+        select: {
+          id: true,
+          name: true,
+          specialty: true,
+          image: true,
+        }
+      });
+      
+      return NextResponse.json(staff);
+    }
 
-    if (!branchExists) {
+    if ((session?.user as { role?: string })?.role !== 'ADMIN') {
       return NextResponse.json(
-        { error: "شعبه مورد نظر یافت نشد" },
-        { status: 404 }
+        { error: "دسترسی غیر مجاز" },
+        { status: 403 }
       );
     }
 
-    const staff = await db.staff.findMany({
-      where: { 
-        branchId,
-        isActive: true 
+    const allStaff = await db.staff.findMany({
+      include: {
+        branch: {
+          select: {
+            id: true,
+            name: true,
+          }
+        }
       },
-      select: {
-        id: true,
-        name: true,
-        specialty: true,
-        bio: true
-      },
-      orderBy: { name: 'asc' }
+      orderBy: { createdAt: 'desc' }
     });
 
-    console.log('Staff found:', staff.length, 'for branch:', branchId);
+    logger.info("Staff fetched successfully", {  count: allStaff.length  });
+    return NextResponse.json(allStaff);
 
-    return NextResponse.json(staff);
-  } catch (error: any) {
-    console.error('Error in staff API:', error);
-    console.error('Error stack:', error.stack);
+  } catch (error) {
+    logger.error("API error in staff route", { error, route: "staff" });
+    return handleApiError(error);
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    const session = await getServerSession(authOptions);
     
-    return NextResponse.json(
-      { error: "خطا در دریافت پرسنل: " + error.message },
-      { status: 500 }
-    );
+    if (!session?.user || (session?.user as { role?: string })?.role !== 'ADMIN') {
+      return NextResponse.json(
+        { error: "دسترسی غیر مجاز" },
+        { status: 403 }
+      );
+    }
+
+    const limiter = getRateLimit("admin");
+    const ip = (request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? request.headers.get("x-real-ip") ?? "unknown") as string;
+    const result = limiter.check(ip);
+    if (!result.success) {
+      throw new ApiError(429, "تعداد درخواست‌های بیش از حد", "RATE_LIMIT_EXCEEDED");
+    }
+
+    const body: unknown = await request.json();
+    
+    const validationResult = staffSchema.safeParse(body);
+    if (!validationResult.success) {
+      return NextResponse.json(
+        { error: "داده‌های نامعتبر", details: validationResult.error.errors },
+        { status: 400 }
+      );
+    }
+
+    const { name, email, phone, specialty, bio, branchId } = validationResult.data;
+
+    const staff = await db.staff.create({
+      data: {
+        name,
+        email,
+        phone,
+        specialty,
+        bio,
+        branchId,
+        isActive: true,
+      },
+      include: {
+        branch: {
+          select: {
+            id: true,
+            name: true,
+          }
+        }
+      }
+    });
+
+    logger.info("Staff created successfully", {  staffId: staff.id  });
+    return NextResponse.json(staff, { status: 201 });
+  } catch (error) {
+    logger.error("API error in staff route", { error, route: "staff", method: "POST" });
+    return handleApiError(error);
   }
 }

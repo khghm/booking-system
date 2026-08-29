@@ -12,7 +12,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { db } from "~/lib/db";
 import bcrypt from "bcryptjs";
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
-import { User, Role } from "@prisma/client";
+import { User } from "@prisma/client";
 
 export const authOptions: NextAuthOptions = {
   session: {

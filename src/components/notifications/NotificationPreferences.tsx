@@ -23,18 +23,17 @@ export function NotificationPreferences() {
   const handleSave = async () => {
     setIsLoading(true);
     try {
-      // ذخیره تنظیمات در دیتابیس
       await fetch('/api/user/notifications', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(preferences),
       });
-      
+
       toast({
         title: "تنظیمات ذخیره شد",
         description: "ترجیحات اطلاع‌رسانی شما با موفقیت به‌روزرسانی شد.",
       });
-    } catch (error) {
+    } catch {
       toast({
         title: "خطا",
         description: "خطا در ذخیره تنظیمات",
@@ -56,7 +55,7 @@ export function NotificationPreferences() {
       <CardContent className="space-y-6">
         <div className="space-y-4">
           <h3 className="text-lg font-medium">یادآوری نوبت‌ها</h3>
-          
+
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <Label htmlFor="email-reminders">ایمیل یادآوری</Label>
@@ -92,7 +91,7 @@ export function NotificationPreferences() {
 
         <div className="space-y-4">
           <h3 className="text-lg font-medium">اطلاعیه‌های سیستم</h3>
-          
+
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <Label htmlFor="appointment-changes">تغییرات نوبت</Label>

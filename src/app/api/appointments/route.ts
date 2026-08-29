@@ -1,86 +1,60 @@
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/prefer-nullish-coalescing */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-// آپدیت فایل API برای لاگ کامل
 // src/app/api/appointments/route.ts
-import { type NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "~/lib/auth";
 import { db } from "~/lib/db";
+import { logger } from "~/lib/logger";
+import { appointmentSchema, type AppointmentInput } from "~/lib/validations";
+import { getRateLimit } from "~/lib/rate-limit";
+import { ApiError, handleApiError } from "~/lib/error-handler";
 
 export async function POST(request: NextRequest) {
   try {
-    console.log("📨 درخواست ایجاد نوبت دریافت شد");
-    
     const session = await getServerSession(authOptions);
-    
+
     if (!session) {
-      console.log("❌ کاربر لاگین نیست");
-      return NextResponse.json(
-        { error: "دسترسی غیر مجاز" },
-        { status: 401 }
-      );
+      throw new ApiError(401, "دسترسی غیر مجاز", "UNAUTHORIZED");
     }
 
-    console.log("👤 کاربر:", session.user.id, session.user.email);
-    
-    const body = await request.json();
-    console.log("📦 داده‌های دریافتی:", JSON.stringify(body, null, 2));
+    const ip = request.headers.get("x-forwarded-for") ?? "unknown";
+    const limiter = getRateLimit("api");
+    const rateResult = limiter.check(ip);
 
-    // اعتبارسنجی ساده
-    if (!body.serviceId || !body.branchId || !body.date) {
-      console.log("❌ داده‌های ناقص");
-      return NextResponse.json(
-        { error: "داده‌های ضروری ارسال نشده" },
-        { status: 400 }
-      );
+    if (!rateResult.success) {
+      throw new ApiError(429, "تعداد درخواست‌های بیش از حد", "RATE_LIMIT_EXCEEDED");
     }
 
-    // بررسی وجود سرویس
+    const body = (await request.json()) as AppointmentInput;
+    const validatedData = appointmentSchema.parse(body);
+
     const service = await db.service.findUnique({
-      where: { id: body.serviceId }
+      where: { id: validatedData.serviceId }
     });
-    
+
     if (!service) {
-      console.log("❌ سرویس یافت نشد:", body.serviceId);
-      return NextResponse.json(
-        { error: "سرویس مورد نظر یافت نشد" },
-        { status: 404 }
-      );
+      throw new ApiError(404, "سرویس مورد نظر یافت نشد", "SERVICE_NOT_FOUND");
     }
 
-    // بررسی وجود شعبه
     const branch = await db.branch.findUnique({
-      where: { id: body.branchId }
+      where: { id: validatedData.branchId }
     });
-    
+
     if (!branch) {
-      console.log("❌ شعبه یافت نشد:", body.branchId);
-      return NextResponse.json(
-        { error: "شعبه مورد نظر یافت نشد" },
-        { status: 404 }
-      );
+      throw new ApiError(404, "شعبه مورد نظر یافت نشد", "BRANCH_NOT_FOUND");
     }
 
-    const appointmentDate = new Date(body.date);
-    const endDate = new Date(appointmentDate.getTime() + (service.duration || 60) * 60000);
+    const appointmentDate = new Date(validatedData.date);
+    const endDate = new Date(appointmentDate.getTime() + (service.duration ?? 60) * 60000);
 
-    console.log("📅 تاریخ نوبت:", appointmentDate);
-    console.log("⏰ پایان نوبت:", endDate);
-
-    // ایجاد نوبت
     const appointment = await db.appointment.create({
       data: {
-        userId: session.user.id,
-        serviceId: body.serviceId,
-        branchId: body.branchId,
-        staffId: body.staffId || null,
+        userId: session!.user.id,
+        serviceId: validatedData.serviceId,
+        branchId: validatedData.branchId,
+        staffId: validatedData.staffId ?? null,
         date: appointmentDate,
         endDate: endDate,
-        notes: body.notes || "",
+        notes: validatedData.notes ?? "",
         status: "PENDING",
       },
       include: {
@@ -90,35 +64,15 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    console.log("✅ نوبت با موفقیت ایجاد شد:", appointment.id);
+    logger.info("نوبت با موفقیت ایجاد شد", { appointmentId: appointment.id, userId: session!.user.id });
 
     return NextResponse.json({
       success: true,
-      appointment: appointment,
+      appointment,
       message: "نوبت با موفقیت رزرو شد"
     }, { status: 201 });
 
-  } catch (error: any) {
-    console.error("💥 خطای کامل در ایجاد نوبت:", error);
-    
-    // لاگ کامل خطا
-    console.error("📝 جزئیات خطا:");
-    console.error("نام خطا:", error.name);
-    console.error("پیام خطا:", error.message);
-    console.error("کد خطا:", error.code);
-    console.error("متن خطا:", error.toString());
-    
-    if (error.stack) {
-      console.error("Stack trace:", error.stack);
-    }
-
-    return NextResponse.json(
-      { 
-        error: "خطای داخلی سرور",
-        details: error.message,
-        code: error.code
-      },
-      { status: 500 }
-    );
+  } catch (error) {
+    return handleApiError(error);
   }
 }

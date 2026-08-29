@@ -1,10 +1,12 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 // src/app/api/user/profile/route.ts
-import { type NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "~/lib/auth";
 import { db } from "~/lib/db";
 import { z } from "zod";
+import { logger } from "~/lib/logger";
+import { getRateLimit } from "~/lib/rate-limit";
+import { ApiError, handleApiError } from "~/lib/error-handler";
 
 const profileSchema = z.object({
   name: z.string().min(2, 'نام باید حداقل ۲ کاراکتر باشد').optional(),
@@ -14,7 +16,7 @@ const profileSchema = z.object({
 export async function PUT(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    
+
     if (!session) {
       return NextResponse.json(
         { error: "دسترسی غیر مجاز" },
@@ -22,22 +24,28 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const body = await request.json();
-    
-    // اعتبارسنجی داده‌ها
+    const ip = request.headers.get("x-forwarded-for") ?? "unknown";
+    const limiter = getRateLimit("api");
+    const rateResult = limiter.check(ip);
+
+    if (!rateResult.success) {
+      throw new ApiError(429, "تعداد درخواست‌های بیش از حد", "RATE_LIMIT_EXCEEDED");
+    }
+
+    const body: unknown = await request.json();
+
     const validationResult = profileSchema.safeParse(body);
     if (!validationResult.success) {
       return NextResponse.json(
-        { error: "داده‌های نامعتبر", details: validationResult.error.errors },
+        { error: "داده‌های نامعتبر", details: validationResult.error.flatten().fieldErrors },
         { status: 400 }
       );
     }
 
     const { name, phone } = validationResult.data;
 
-    // بروزرسانی کاربر
     const updatedUser = await db.user.update({
-      where: { id: session.user.id },
+      where: { id: session!.user.id },
       data: {
         ...(name && { name }),
         ...(phone && { phone }),
@@ -52,12 +60,9 @@ export async function PUT(request: NextRequest) {
       }
     });
 
+    logger.info("Profile updated successfully", {  userId: updatedUser.id  });
     return NextResponse.json(updatedUser);
   } catch (error) {
-    console.error('Error updating profile:', error);
-    return NextResponse.json(
-      { error: "خطا در به‌روزرسانی پروفایل" },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }
